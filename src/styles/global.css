@@ -634,6 +634,13 @@ body {
   border-bottom: 1px dotted var(--muted);
 }
 .site-foot .colophon a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.site-foot .colophon svg.rocket {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.18em;
+  color: var(--accent);
+}
 .site-foot .social { display: flex; gap: 16px; }
 .site-foot .social a {
   color: var(--meta);
