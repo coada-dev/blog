@@ -61,7 +61,33 @@ export const POST: APIRoute = async ({ request }) => {
     }
     return json({ success: true, status });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return json({ success: false, error: message }, 500);
+    // Surface friendly messages for known Hashnode errors; log the rest.
+    const errors = (err as any)?.response?.errors as
+      | { message?: string }[]
+      | undefined;
+    const upstream = errors?.[0]?.message ?? '';
+
+    if (/newsletter not enabled/i.test(upstream)) {
+      return json(
+        {
+          success: false,
+          error:
+            "The newsletter isn't accepting subscriptions yet. Check back soon.",
+        },
+        503
+      );
+    }
+    if (/already subscribed/i.test(upstream)) {
+      return json(
+        { success: false, error: "You're already subscribed — thanks!" },
+        409
+      );
+    }
+
+    console.error('[subscribe] upstream error', err);
+    return json(
+      { success: false, error: 'Subscription failed. Please try again later.' },
+      502
+    );
   }
 };
