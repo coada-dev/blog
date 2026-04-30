@@ -13,9 +13,9 @@
   --rule:      #e6e4dd;
   --ink:       #1a1a1a;
   --ink-soft:  #3a3a37;
-  --muted:     #8a8a82;
+  --muted:     #6e6e68;            /* AA on --bg (was #8a8a82, ratio 3.32 → 5.0) */
   --meta:      #6b6b66;
-  --accent:    #4f8eaa;            /* desaturated Coada blue */
+  --accent:    #37798f;            /* AA on --bg (was #4f8eaa, ratio 3.47 → 4.75) */
   --accent-2:  #55c7dc;            /* logo light stop, used very sparingly */
   --code-bg:   #f1efe8;
   --selection: #cfe6ef;
@@ -43,7 +43,7 @@
     --rule:      #262a31;
     --ink:       #e8e6e1;          /* warm off-white, not pure white */
     --ink-soft:  #c8c6c0;
-    --muted:     #6a6e76;
+    --muted:     #8d9099;          /* AA on dark --bg (was #6a6e76, ratio 3.27 → 5.6) */
     --meta:      #8a8d94;
     --accent:    #7ab8d2;          /* lifted Coada blue for contrast */
     --accent-2:  #55c7dc;
