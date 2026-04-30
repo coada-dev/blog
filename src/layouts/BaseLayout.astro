@@ -9,8 +9,8 @@ interface Props {
   canonical?: string;
   /** Optional <main> screen label, used by the design's data-screen-label hook. */
   screenLabel?: string;
-  /** Marks the "Writing" nav link as current. */
-  navCurrent?: boolean;
+  /** Marks a nav link as current and switches the section label in the brand. */
+  navCurrent?: 'writing' | 'about';
   /** OG image URL (e.g. Hashnode cover). */
   ogImage?: string;
   /** OG type — defaults to "website"; set to "article" for posts. */
@@ -22,7 +22,7 @@ const {
   description,
   canonical,
   screenLabel,
-  navCurrent = false,
+  navCurrent,
   ogImage,
   ogType = 'website',
 } = Astro.props;
