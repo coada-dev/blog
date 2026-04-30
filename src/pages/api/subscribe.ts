@@ -3,7 +3,7 @@ import type { APIRoute } from 'astro';
 export const prerender = false;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const KIT_ENDPOINT = 'https://api.kit.com/v4/forms';
+const KIT_API = 'https://api.kit.com/v4';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -26,6 +26,20 @@ function redactEmail(value: unknown): unknown {
     return out;
   }
   return value;
+}
+
+async function readDetail(res: Response): Promise<unknown> {
+  try {
+    const raw = await res.text();
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw;
+    }
+  } catch {
+    return null;
+  }
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -51,51 +65,73 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ success: false, error: 'Please enter a valid email.' }, 400);
   }
 
-  const referrer = request.headers.get('referer') ?? undefined;
+  const headers = {
+    'content-type': 'application/json',
+    'X-Kit-Api-Key': apiKey,
+  };
 
   try {
-    const res = await fetch(`${KIT_ENDPOINT}/${formId}/subscribers`, {
+    // Step 1 — upsert the subscriber. POST /v4/subscribers behaves as an
+    // upsert and returns the subscriber object whether it's new or existing.
+    // (Kit's /v4/forms/{id}/subscribers add-by-email endpoint 404s on
+    // newer Designer-style forms; the create-then-attach flow is reliable.)
+    const createRes = await fetch(`${KIT_API}/subscribers`, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'X-Kit-Api-Key': apiKey,
-      },
-      body: JSON.stringify({ email_address: email, referrer }),
+      headers,
+      body: JSON.stringify({ email_address: email }),
     });
 
-    // Kit returns 201 for a brand-new subscription and 200 if the address
-    // was already subscribed to this form.
-    if (res.status === 201) {
-      return json({ success: true });
-    }
-    if (res.status === 200) {
-      return json({ success: true, alreadySubscribed: true });
+    if (createRes.status !== 200 && createRes.status !== 201) {
+      const detail = await readDetail(createRes);
+      console.error(
+        '[subscribe] Kit create-subscriber failed',
+        createRes.status,
+        redactEmail(detail)
+      );
+      return json(
+        { success: false, error: 'Subscription failed. Please try again later.' },
+        502
+      );
     }
 
-    let detail: unknown = null;
-    try {
-      // Read the body once — calling res.json() then res.text() consumes the
-      // stream and the second read returns nothing. Read text first, then try
-      // to parse, falling back to the raw string.
-      const raw = await res.text();
-      if (raw) {
-        try {
-          detail = JSON.parse(raw);
-        } catch {
-          detail = raw;
-        }
-      }
-    } catch {
-      detail = null;
+    const createBody = (await createRes.json().catch(() => null)) as
+      | { subscriber?: { id?: number; created_at?: string } }
+      | null;
+    const subscriberId = createBody?.subscriber?.id;
+    if (!subscriberId) {
+      console.error(
+        '[subscribe] Kit returned no subscriber id',
+        redactEmail(createBody)
+      );
+      return json(
+        { success: false, error: 'Subscription failed. Please try again later.' },
+        502
+      );
     }
-    // Avoid logging the submitted email — Kit echoes subscriber fields in
-    // error payloads. Pull a status/message summary instead.
-    const safeDetail = redactEmail(detail);
-    console.error('[subscribe] Kit error', res.status, safeDetail);
-    return json(
-      { success: false, error: 'Subscription failed. Please try again later.' },
-      502
+
+    // Heuristic for "already subscribed": create returned 200 (existing) and
+    // we'll still attach to the form to be idempotent.
+    const alreadyExisted = createRes.status === 200;
+
+    // Step 2 — attach the subscriber to our form so any form-specific
+    // automations / sequences fire.
+    const attachRes = await fetch(
+      `${KIT_API}/forms/${formId}/subscribers/${subscriberId}`,
+      { method: 'POST', headers }
     );
+    if (attachRes.status !== 200 && attachRes.status !== 201) {
+      const detail = await readDetail(attachRes);
+      console.error(
+        '[subscribe] Kit attach-to-form failed',
+        attachRes.status,
+        redactEmail(detail)
+      );
+      // The subscriber was created — surface success to the user but log
+      // the attach failure so we can fix it server-side.
+      return json({ success: true, alreadySubscribed: alreadyExisted });
+    }
+
+    return json({ success: true, alreadySubscribed: alreadyExisted });
   } catch (err) {
     console.error('[subscribe] network error', err);
     return json(
