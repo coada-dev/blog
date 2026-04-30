@@ -1,0 +1,12 @@
+---
+interface Props {
+  tags: { name: string; slug: string }[] | null | undefined;
+}
+const { tags } = Astro.props;
+if (!tags || tags.length === 0) return null;
+---
+
+<div class="tags" aria-label="Tags">
+  <span class="label">Filed under</span>
+  {tags.map((t) => <a href={`#tag-${t.slug}`}>{t.name}</a>)}
+</div>

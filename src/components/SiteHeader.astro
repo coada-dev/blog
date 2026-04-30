@@ -1,0 +1,20 @@
+---
+interface Props {
+  /** When true, marks the Writing nav link as the current page. */
+  current?: boolean;
+}
+const { current = false } = Astro.props;
+---
+
+<header class="site-head">
+  <a class="brand" href="/" aria-label="Coada — home">
+    <img src="/assets/coada.svg" alt="Coada" />
+    <span class="slash">/</span>
+    <span class="section">writing</span>
+  </a>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="/" {...(current ? { 'aria-current': 'page' } : {})}>Writing</a>
+    <a href="https://coada.dev">About</a>
+    <a href="/rss.xml">RSS</a>
+  </nav>
+</header>

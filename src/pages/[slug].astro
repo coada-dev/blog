@@ -1,0 +1,119 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostMeta from '../components/PostMeta.astro';
+import Tags from '../components/Tags.astro';
+import SeriesNav from '../components/SeriesNav.astro';
+import AdjacentNav from '../components/AdjacentNav.astro';
+import SubscribeForm from '../components/SubscribeForm.astro';
+import {
+  fetchAllPosts,
+  fetchAllSeries,
+  fetchPost,
+  fetchSeries,
+  orderSeriesPosts,
+} from '../lib/data';
+import type { PostFull, SeriesFull } from '../lib/types';
+
+export async function getStaticPaths() {
+  const posts = await fetchAllPosts();
+  return posts.map((post) => ({ params: { slug: post.slug } }));
+}
+
+const { slug } = Astro.params;
+if (!slug) {
+  throw new Error('Missing post slug');
+}
+
+const post: PostFull | null = await fetchPost(slug);
+if (!post) {
+  throw new Error(`Post not found: ${slug}`);
+}
+
+// Build series + adjacent context.
+let series: SeriesFull | null = null;
+let currentIndex = 0;
+let totalInSeries = 0;
+let seriesPrev: { title: string; slug: string } | null = null;
+let seriesNext: { title: string; slug: string } | null = null;
+let adjPrev: { title: string; slug: string } | null = null;
+let adjNext: { title: string; slug: string } | null = null;
+
+if (post.series) {
+  series = await fetchSeries(post.series.slug);
+}
+
+if (series) {
+  const ordered = orderSeriesPosts(series);
+  totalInSeries = ordered.length;
+  const idx = ordered.findIndex((p) => p.slug === post.slug);
+  if (idx >= 0) {
+    currentIndex = idx + 1;
+    if (idx > 0) {
+      const p = ordered[idx - 1];
+      seriesPrev = { title: p.title, slug: p.slug };
+    }
+    if (idx < ordered.length - 1) {
+      const n = ordered[idx + 1];
+      seriesNext = { title: n.title, slug: n.slug };
+    }
+  }
+} else {
+  // Standalone posts get reverse-chronological prev/next from the full feed.
+  const allPosts = await fetchAllPosts();
+  const idx = allPosts.findIndex((p) => p.slug === post.slug);
+  if (idx >= 0) {
+    // allPosts is newest-first → prev (older) is at idx+1, next (newer) is at idx-1.
+    const olderRaw = allPosts[idx + 1];
+    const newerRaw = allPosts[idx - 1];
+    if (olderRaw) adjPrev = { title: olderRaw.title, slug: olderRaw.slug };
+    if (newerRaw) adjNext = { title: newerRaw.title, slug: newerRaw.slug };
+  }
+}
+
+const seoTitle = post.seo?.title ?? post.title;
+const seoDescription = post.seo?.description ?? post.brief;
+const partLabel = series ? `Part ${currentIndex}` : null;
+---
+
+<BaseLayout
+  title={`${seoTitle} — Coada`}
+  description={seoDescription}
+  ogType="article"
+  ogImage={post.coverImage?.url}
+  screenLabel="02 Post"
+>
+  <article>
+    <header class="post-header">
+      <h1>{post.title}</h1>
+      <PostMeta
+        publishedAt={post.publishedAt}
+        readTimeInMinutes={post.readTimeInMinutes}
+        author={post.author?.name}
+        series={post.series}
+        partLabel={partLabel}
+      />
+    </header>
+
+    <div class="article" set:html={post.content.html} />
+
+    <Tags tags={post.tags} />
+
+    {
+      series && (
+        <SeriesNav
+          series={post.series!}
+          currentIndex={currentIndex}
+          total={totalInSeries}
+          prev={seriesPrev}
+          next={seriesNext}
+          prevPart={currentIndex > 1 ? currentIndex - 1 : null}
+          nextPart={currentIndex < totalInSeries ? currentIndex + 1 : null}
+        />
+      )
+    }
+
+    {!series && <AdjacentNav prev={adjPrev} next={adjNext} />}
+
+    <SubscribeForm />
+  </article>
+</BaseLayout>

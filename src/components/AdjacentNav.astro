@@ -1,0 +1,34 @@
+---
+import type { PostListNode } from '../lib/types';
+
+interface Props {
+  prev: Pick<PostListNode, 'title' | 'slug'> | null;
+  next: Pick<PostListNode, 'title' | 'slug'> | null;
+}
+const { prev, next } = Astro.props;
+
+if (!prev && !next) return null;
+---
+
+<nav class="adjacent" aria-label="Adjacent posts">
+  {
+    prev ? (
+      <a class="prev" href={`/${prev.slug}`}>
+        <div class="lbl">← Previous</div>
+        <div class="ttl">{prev.title}</div>
+      </a>
+    ) : (
+      <span class="prev empty" aria-hidden="true" />
+    )
+  }
+  {
+    next ? (
+      <a class="next" href={`/${next.slug}`}>
+        <div class="lbl">Next →</div>
+        <div class="ttl">{next.title}</div>
+      </a>
+    ) : (
+      <span class="next empty" aria-hidden="true" />
+    )
+  }
+</nav>
