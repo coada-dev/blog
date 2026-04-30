@@ -1,0 +1,38 @@
+---
+import { formatDateLong, isoDate } from '../lib/format';
+
+interface Props {
+  publishedAt: string;
+  readTimeInMinutes: number;
+  author?: string | null;
+  series?: { name: string; slug: string } | null;
+  /** "Part 3" — required if `series` is provided. */
+  partLabel?: string | null;
+}
+
+const { publishedAt, readTimeInMinutes, author, series, partLabel } = Astro.props;
+---
+
+<div class="post-meta">
+  {
+    author && (
+      <>
+        <span class="author">{author}</span>
+        <span class="dot" aria-hidden="true"></span>
+      </>
+    )
+  }
+  <time datetime={isoDate(publishedAt)}>{formatDateLong(publishedAt)}</time>
+  <span class="dot" aria-hidden="true"></span>
+  <span>{readTimeInMinutes} min read</span>
+  {
+    series && partLabel && (
+      <>
+        <span class="dot" aria-hidden="true"></span>
+        <span>
+          {partLabel} of <a class="series-link" href={`/series/${series.slug}`}>{series.name}</a>
+        </span>
+      </>
+    )
+  }
+</div>

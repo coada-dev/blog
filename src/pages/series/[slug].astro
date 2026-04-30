@@ -1,0 +1,68 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { fetchAllSeries, fetchSeries, orderSeriesPosts } from '../../lib/data';
+import { formatDateShort, formatDateLong, isoDate } from '../../lib/format';
+
+export async function getStaticPaths() {
+  const series = await fetchAllSeries();
+  return series.map((s) => ({ params: { slug: s.slug } }));
+}
+
+const { slug } = Astro.params;
+if (!slug) {
+  throw new Error('Missing series slug');
+}
+
+const series = await fetchSeries(slug);
+if (!series) {
+  throw new Error(`Series not found: ${slug}`);
+}
+
+const posts = orderSeriesPosts(series);
+const lastUpdated = posts.length
+  ? posts.reduce((max, p) => (new Date(p.publishedAt) > new Date(max) ? p.publishedAt : max), posts[0].publishedAt)
+  : null;
+
+// Strip HTML for the meta description so feed readers / OG cards get plain text.
+const plainDescription = series.description?.html
+  ? series.description.html.replace(/<[^>]+>/g, '').trim().slice(0, 200)
+  : `A series of posts on ${series.name}.`;
+---
+
+<BaseLayout
+  title={`${series.name} — Coada`}
+  description={plainDescription}
+  screenLabel="03 Series"
+>
+  <header class="series-header">
+    <div class="series-eyebrow">Series</div>
+    <h1>{series.name}</h1>
+    {
+      series.description?.html && (
+        <div class="series-description" set:html={series.description.html} />
+      )
+    }
+    <div class="series-meta">
+      {posts.length} part{posts.length === 1 ? '' : 's'}
+      {lastUpdated && <> &middot; updated {formatDateLong(lastUpdated)}</>}
+    </div>
+  </header>
+
+  <ol class="series-list">
+    {
+      posts.map((post) => (
+        <li>
+          <a href={`/${post.slug}`}>
+            <span class="title-wrap">
+              <span class="title">{post.title}</span>
+              {post.brief && <span class="brief">{post.brief}</span>}
+            </span>
+            <time class="date" datetime={isoDate(post.publishedAt)}>
+              {formatDateShort(post.publishedAt)}
+            </time>
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+</BaseLayout>

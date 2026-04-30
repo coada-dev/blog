@@ -1,0 +1,62 @@
+---
+// The only client-side JS on the site (~15 lines) — handles a fetch() against
+// /api/subscribe and renders inline success/error feedback. Per ADR-008.
+---
+
+<section class="subscribe" aria-label="Subscribe">
+  <p>Get new posts in your inbox. No spam, unsubscribe anytime.</p>
+  <form action="/api/subscribe" method="post" data-subscribe>
+    <input
+      type="email"
+      name="email"
+      placeholder="you@example.com"
+      required
+      aria-label="Email address"
+    />
+    <button type="submit">Subscribe</button>
+  </form>
+  <p class="subscribe-status" data-subscribe-status hidden></p>
+</section>
+
+<script is:inline>
+  (() => {
+    document.querySelectorAll('form[data-subscribe]').forEach((f) => {
+      const status = f.parentElement.querySelector('[data-subscribe-status]');
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = new FormData(f).get('email');
+        const btn = f.querySelector('button');
+        btn.disabled = true;
+        status.hidden = false;
+        status.textContent = 'Subscribing…';
+        try {
+          const r = await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          const data = await r.json().catch(() => ({}));
+          if (r.ok && data.success) {
+            status.textContent = 'Thanks — check your inbox to confirm.';
+            f.reset();
+          } else {
+            status.textContent = data.error || 'Something went wrong. Try again.';
+          }
+        } catch {
+          status.textContent = 'Network error. Try again.';
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+  })();
+</script>
+
+<style>
+  .subscribe-status {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--meta);
+    margin: 12px 0 0;
+  }
+</style>

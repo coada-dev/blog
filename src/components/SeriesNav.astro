@@ -1,0 +1,45 @@
+---
+import type { PostListNode } from '../lib/types';
+
+interface Props {
+  series: { name: string; slug: string };
+  /** 1-based index of the current post within the ordered series. */
+  currentIndex: number;
+  total: number;
+  prev: Pick<PostListNode, 'title' | 'slug'> | null;
+  next: Pick<PostListNode, 'title' | 'slug'> | null;
+  /** Position labels — relative to the series sort order, not chronology. */
+  prevPart?: number | null;
+  nextPart?: number | null;
+}
+
+const { series, currentIndex, prev, next, prevPart, nextPart } = Astro.props;
+---
+
+<nav class="series-nav" aria-label="Series navigation">
+  <div class="series-nav-head">
+    Part {currentIndex} of <a href={`/series/${series.slug}`}>{series.name}</a>
+  </div>
+  <div class="series-nav-row">
+    {
+      prev ? (
+        <a class="prev" href={`/${prev.slug}`}>
+          <div class="lbl">← Part {prevPart}</div>
+          <div class="ttl">{prev.title}</div>
+        </a>
+      ) : (
+        <span class="prev empty" aria-hidden="true" />
+      )
+    }
+    {
+      next ? (
+        <a class="next" href={`/${next.slug}`}>
+          <div class="lbl">Part {nextPart} →</div>
+          <div class="ttl">{next.title}</div>
+        </a>
+      ) : (
+        <span class="next empty" aria-hidden="true" />
+      )
+    }
+  </div>
+</nav>
