@@ -37,7 +37,9 @@
           });
           const data = await r.json().catch(() => ({}));
           if (r.ok && data.success) {
-            status.textContent = 'Thanks — check your inbox to confirm.';
+            status.textContent = data.alreadySubscribed
+              ? "You're already subscribed — thanks!"
+              : "Thanks — you're on the list.";
             f.reset();
           } else {
             status.textContent = data.error || 'Something went wrong. Try again.';

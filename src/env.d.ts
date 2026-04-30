@@ -3,7 +3,8 @@
 
 interface ImportMetaEnv {
   readonly HASHNODE_PUBLICATION_HOST: string;
-  readonly HASHNODE_ACCESS_TOKEN: string;
+  readonly KIT_API_KEY: string;
+  readonly KIT_FORM_ID: string;
   readonly SITE_URL: string;
 }
 

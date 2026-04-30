@@ -1,33 +1,9 @@
 import type { APIRoute } from 'astro';
-import { hashnodeAuthed, publicationHost, hashnode } from '../../lib/client';
-import { SUBSCRIBE_TO_NEWSLETTER } from '../../lib/queries';
-import { gql } from 'graphql-request';
 
 export const prerender = false;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const PUBLICATION_ID_QUERY = gql`
-  query PublicationId($host: String!) {
-    publication(host: $host) {
-      id
-    }
-  }
-`;
-
-let cachedPublicationId: string | null = null;
-
-async function getPublicationId(): Promise<string> {
-  if (cachedPublicationId) return cachedPublicationId;
-  const host = publicationHost();
-  const data: any = await hashnode.request(PUBLICATION_ID_QUERY, { host });
-  const id = data?.publication?.id;
-  if (!id) {
-    throw new Error(`Could not resolve publication id for host ${host}`);
-  }
-  cachedPublicationId = id;
-  return id;
-}
+const KIT_ENDPOINT = 'https://api.kit.com/v4/forms';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -37,6 +13,16 @@ function json(body: unknown, status = 200): Response {
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  const apiKey = import.meta.env.KIT_API_KEY;
+  const formId = import.meta.env.KIT_FORM_ID;
+  if (!apiKey || !formId) {
+    console.error('[subscribe] KIT_API_KEY or KIT_FORM_ID is not set');
+    return json(
+      { success: false, error: 'Subscriptions are not configured.' },
+      503
+    );
+  }
+
   let email: string | undefined;
   try {
     const body = await request.json();
@@ -49,44 +35,42 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ success: false, error: 'Please enter a valid email.' }, 400);
   }
 
+  const referrer = request.headers.get('referer') ?? undefined;
+
   try {
-    const publicationId = await getPublicationId();
-    const client = hashnodeAuthed();
-    const data: any = await client.request(SUBSCRIBE_TO_NEWSLETTER, {
-      input: { email, publicationId },
+    const res = await fetch(`${KIT_ENDPOINT}/${formId}/subscribers`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'X-Kit-Api-Key': apiKey,
+      },
+      body: JSON.stringify({ email_address: email, referrer }),
     });
-    const status = data?.subscribeToNewsletter?.status;
-    if (!status) {
-      return json({ success: false, error: 'Subscription failed.' }, 502);
-    }
-    return json({ success: true, status });
-  } catch (err) {
-    // Surface friendly messages for known Hashnode errors; log the rest.
-    const errors = (err as any)?.response?.errors as
-      | { message?: string }[]
-      | undefined;
-    const upstream = errors?.[0]?.message ?? '';
 
-    if (/newsletter not enabled/i.test(upstream)) {
-      return json(
-        {
-          success: false,
-          error:
-            "The newsletter isn't accepting subscriptions yet. Check back soon.",
-        },
-        503
-      );
+    // Kit returns 201 for a brand-new subscription and 200 if the address
+    // was already subscribed to this form.
+    if (res.status === 201) {
+      return json({ success: true });
     }
-    if (/already subscribed/i.test(upstream)) {
-      return json(
-        { success: false, error: "You're already subscribed — thanks!" },
-        409
-      );
+    if (res.status === 200) {
+      return json({ success: true, alreadySubscribed: true });
     }
 
-    console.error('[subscribe] upstream error', err);
+    let detail: unknown = null;
+    try {
+      detail = await res.json();
+    } catch {
+      detail = await res.text().catch(() => null);
+    }
+    console.error('[subscribe] Kit error', res.status, detail);
     return json(
       { success: false, error: 'Subscription failed. Please try again later.' },
+      502
+    );
+  } catch (err) {
+    console.error('[subscribe] network error', err);
+    return json(
+      { success: false, error: 'Network error. Please try again.' },
       502
     );
   }
