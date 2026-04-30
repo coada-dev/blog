@@ -12,6 +12,22 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+const EMAIL_GLOBAL_RE = /[^\s"<>]+@[^\s"<>]+\.[^\s"<>]+/g;
+
+/** Recursively strip email addresses from an upstream payload before logging. */
+function redactEmail(value: unknown): unknown {
+  if (typeof value === 'string') return value.replace(EMAIL_GLOBAL_RE, '[redacted]');
+  if (Array.isArray(value)) return value.map(redactEmail);
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = k.toLowerCase().includes('email') ? '[redacted]' : redactEmail(v);
+    }
+    return out;
+  }
+  return value;
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const apiKey = import.meta.env.KIT_API_KEY;
   const formId = import.meta.env.KIT_FORM_ID;
@@ -58,11 +74,24 @@ export const POST: APIRoute = async ({ request }) => {
 
     let detail: unknown = null;
     try {
-      detail = await res.json();
+      // Read the body once — calling res.json() then res.text() consumes the
+      // stream and the second read returns nothing. Read text first, then try
+      // to parse, falling back to the raw string.
+      const raw = await res.text();
+      if (raw) {
+        try {
+          detail = JSON.parse(raw);
+        } catch {
+          detail = raw;
+        }
+      }
     } catch {
-      detail = await res.text().catch(() => null);
+      detail = null;
     }
-    console.error('[subscribe] Kit error', res.status, detail);
+    // Avoid logging the submitted email — Kit echoes subscriber fields in
+    // error payloads. Pull a status/message summary instead.
+    const safeDetail = redactEmail(detail);
+    console.error('[subscribe] Kit error', res.status, safeDetail);
     return json(
       { success: false, error: 'Subscription failed. Please try again later.' },
       502
