@@ -1,0 +1,79 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const description =
+  "A short note on who's writing here, who it's for, and how to get in touch.";
+---
+
+<BaseLayout
+  title="About — Coada"
+  description={description}
+  navCurrent="about"
+  screenLabel="04 About"
+>
+  <article>
+    <header class="post-header">
+      <h1>About</h1>
+    </header>
+
+    <div class="article">
+      <p>
+        I'm Mike. I write about software architecture the way I actually
+        practice it — solo more often than not, with AI in the loop, and using
+        methodologies (DDD, event storming, Jobs to Be Done) that were
+        designed for rooms full of people I don't have.
+      </p>
+
+      <p>
+        Most of what shows up here started as a problem I was banging my head
+        against on a Tuesday. If the writing reads a little raw, that's why.
+        I publish thinking-in-progress because by the time it's polished I've
+        usually lost the thread of what made it worth writing.
+      </p>
+
+      <h2>Who this is for</h2>
+
+      <p>This blog is for you if&hellip;</p>
+
+      <ul>
+        <li>
+          You've read enough Evans and Vernon to know DDD assumes a team, and
+          you're trying to do it alone.
+        </li>
+        <li>
+          You've integrated AI into your work and are quietly wondering which
+          decisions you've stopped making.
+        </li>
+        <li>
+          You like methodology but have given up on the workshop industrial
+          complex.
+        </li>
+        <li>
+          You suspect most architecture problems are vocabulary problems
+          pretending to be technical ones.
+        </li>
+      </ul>
+
+      <p>
+        I don't have a course to sell. I don't have a funnel. The newsletter,
+        if you're into that, is one email per post — that's it.
+      </p>
+
+      <h2>Saying hi</h2>
+
+      <p>
+        If something here helps you, that's the whole point — and I'd love to
+        hear about it. If something here is <em>wrong</em>, I want to hear
+        about that even more. The best mail I get is from somebody disagreeing
+        with a post from three months ago.
+      </p>
+
+      <p>
+        <a href="mailto:hello@coada.dev">hello@coada.dev</a> is the fastest
+        way to reach me. I'm slow to reply but I read everything.
+      </p>
+
+      <p>&mdash; Mike</p>
+    </div>
+  </article>
+</BaseLayout>
