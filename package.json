@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.18",
+    "@astrojs/sitemap": "^3.7.2",
     "@astrojs/vercel": "^10.0.6",
+    "@vercel/analytics": "^2.0.1",
     "astro": "^6.0.0",
     "graphql": "^16.9.0",
     "graphql-request": "^7.1.0"

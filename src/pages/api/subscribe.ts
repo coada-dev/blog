@@ -28,6 +28,29 @@ function redactEmail(value: unknown): unknown {
   return value;
 }
 
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as const;
+const SITE_URL_FALLBACK = 'https://blog.coada.dev';
+
+/**
+ * Compose a Kit-compatible referrer URL from the UTM payload sent by the
+ * client. Kit parses `referrer` as a URL and extracts `utm_*` query params
+ * into the subscriber's `referrer_utm_parameters` record.
+ */
+function buildKitReferrer(utm: Record<string, unknown> | null): string | undefined {
+  if (!utm) return undefined;
+  const params = new URLSearchParams();
+  for (const k of UTM_KEYS) {
+    const v = utm[k];
+    if (typeof v === 'string' && v.length > 0) params.set(k, v);
+  }
+  if ([...params].length === 0) return undefined;
+  const base = (import.meta.env.SITE_URL ?? SITE_URL_FALLBACK).replace(/\/$/, '');
+  const landing = typeof utm.landing === 'string' && utm.landing.startsWith('/')
+    ? utm.landing
+    : '/';
+  return `${base}${landing}?${params.toString()}`;
+}
+
 async function readDetail(res: Response): Promise<unknown> {
   try {
     const raw = await res.text();
@@ -54,9 +77,13 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   let email: string | undefined;
+  let utm: Record<string, unknown> | null = null;
   try {
     const body = await request.json();
     email = typeof body?.email === 'string' ? body.email.trim() : undefined;
+    if (body?.utm && typeof body.utm === 'object') {
+      utm = body.utm as Record<string, unknown>;
+    }
   } catch {
     return json({ success: false, error: 'Invalid request body.' }, 400);
   }
@@ -64,6 +91,8 @@ export const POST: APIRoute = async ({ request }) => {
   if (!email || !EMAIL_RE.test(email)) {
     return json({ success: false, error: 'Please enter a valid email.' }, 400);
   }
+
+  const referrer = buildKitReferrer(utm);
 
   const headers = {
     'content-type': 'application/json',
@@ -78,7 +107,10 @@ export const POST: APIRoute = async ({ request }) => {
     const createRes = await fetch(`${KIT_API}/subscribers`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ email_address: email }),
+      body: JSON.stringify({
+        email_address: email,
+        ...(referrer ? { referrer } : {}),
+      }),
     });
 
     if (createRes.status !== 200 && createRes.status !== 201) {
@@ -114,10 +146,16 @@ export const POST: APIRoute = async ({ request }) => {
     const alreadyExisted = createRes.status === 200;
 
     // Step 2 — attach the subscriber to our form so any form-specific
-    // automations / sequences fire.
+    // automations / sequences fire. Pass the referrer URL so Kit's
+    // referrer_utm_parameters get populated on the form-subscription record
+    // too (not just on the subscriber).
     const attachRes = await fetch(
       `${KIT_API}/forms/${formId}/subscribers/${subscriberId}`,
-      { method: 'POST', headers }
+      {
+        method: 'POST',
+        headers,
+        ...(referrer ? { body: JSON.stringify({ referrer }) } : {}),
+      }
     );
     if (attachRes.status !== 200 && attachRes.status !== 201) {
       const detail = await readDetail(attachRes);

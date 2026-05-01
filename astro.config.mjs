@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import vercel from '@astrojs/vercel';
+import sitemap from '@astrojs/sitemap';
 
 const SITE_URL = process.env.SITE_URL ?? 'https://blog.coada.dev';
 
@@ -13,4 +14,9 @@ export default defineConfig({
   build: {
     format: 'file',
   },
+  integrations: [
+    sitemap({
+      filter: (page) => !page.includes('/api/'),
+    }),
+  ],
 });

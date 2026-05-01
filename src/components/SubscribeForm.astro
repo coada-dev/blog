@@ -29,11 +29,16 @@
         btn.disabled = true;
         status.hidden = false;
         status.textContent = 'Subscribing…';
+        let utm = null;
+        try {
+          const stored = localStorage.getItem('coada_utm');
+          if (stored) utm = JSON.parse(stored);
+        } catch {}
         try {
           const r = await fetch('/api/subscribe', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ email }),
+            body: JSON.stringify({ email, utm }),
           });
           const data = await r.json().catch(() => ({}));
           if (r.ok && data.success) {
