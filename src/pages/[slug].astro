@@ -81,6 +81,12 @@ const partLabel = series ? `Part ${currentIndex}` : null;
   ogType="article"
   ogImage={post.coverImage?.url}
   screenLabel="02 Post"
+  article={{
+    publishedAt: post.publishedAt,
+    authorName: post.author?.name,
+    section: post.series?.name ?? 'Software Engineering',
+    tags: post.tags ?? undefined,
+  }}
 >
   <article>
     <header class="post-header">
