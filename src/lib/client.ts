@@ -1,25 +1,22 @@
 import { GraphQLClient } from 'graphql-request';
 
-const HASHNODE_ENDPOINT = 'https://gql.hashnode.com';
+// Hashnode's API moved when the GraphQL offering went paid (2026-05-13):
+// the old gql.hashnode.com now 301s every request — authenticated or not —
+// to the changelog announcement. gql-beta.hashnode.com is the endpoint
+// Hashnode's own docs use post-change.
+const HASHNODE_ENDPOINT = 'https://gql-beta.hashnode.com';
 
 /**
  * Read-only client for build-time queries against Hashnode's GraphQL API.
- * As of Hashnode's 2026-05-13 changelog, reads require a Pro plan and a
- * Personal Access Token (hashnode.com/settings/developer). Newsletter
+ * Reads work when the publication is allow-listed via a Pro plan; the
+ * Personal Access Token (raw value, no Bearer prefix) is only needed for
+ * user-scoped queries, so it is attached when present. Newsletter
  * subscriptions go through Kit (see /api/subscribe), not Hashnode.
  */
-function hashnodeToken(): string {
-  const token = import.meta.env.HASHNODE_ACCESS_TOKEN;
-  if (!token) {
-    throw new Error(
-      'HASHNODE_ACCESS_TOKEN is not set — Hashnode API reads require a Pro Personal Access Token (hashnode.com/settings/developer)'
-    );
-  }
-  return token;
-}
+const token = import.meta.env.HASHNODE_ACCESS_TOKEN;
 
 export const hashnode = new GraphQLClient(HASHNODE_ENDPOINT, {
-  headers: { Authorization: hashnodeToken() },
+  headers: token ? { Authorization: token } : {},
 });
 
 export function publicationHost(): string {

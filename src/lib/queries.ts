@@ -103,7 +103,6 @@ export const SERIES_POSTS = gql`
         description {
           html
         }
-        sortOrder
         posts(first: $first, after: $after) {
           edges {
             node {

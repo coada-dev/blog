@@ -82,7 +82,6 @@ export async function fetchSeries(seriesSlug: string): Promise<SeriesFull | null
         name: series.name,
         slug: series.slug,
         description: series.description,
-        sortOrder: series.sortOrder,
         posts: { edges: [] },
       };
     }
@@ -96,16 +95,14 @@ export async function fetchSeries(seriesSlug: string): Promise<SeriesFull | null
 }
 
 /**
- * Order series posts by the author-defined sortOrder.
- * Hashnode API returns posts in publication date order; we re-sort here.
+ * Order series posts oldest-first (reading order). The current Hashnode API
+ * no longer exposes the author-defined sortOrder field, so chronological
+ * reading order is the one canonical ordering.
  */
 export function orderSeriesPosts(series: SeriesFull) {
   const posts = series.posts.edges.map((e) => e.node);
-  const ascending = series.sortOrder === 'asc';
-  posts.sort((a, b) => {
-    const ta = new Date(a.publishedAt).getTime();
-    const tb = new Date(b.publishedAt).getTime();
-    return ascending ? ta - tb : tb - ta;
-  });
+  posts.sort(
+    (a, b) => new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime()
+  );
   return posts;
 }

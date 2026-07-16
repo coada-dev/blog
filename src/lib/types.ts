@@ -27,7 +27,6 @@ export interface SeriesFull {
   name: string;
   slug: string;
   description: { html: string } | null;
-  sortOrder: 'asc' | 'dsc' | string;
   posts: {
     edges: { node: Omit<PostListNode, 'series'> }[];
   };
