@@ -91,6 +91,7 @@ const partLabel = series ? `Part ${currentIndex}` : null;
   <article>
     <header class="post-header">
       <h1>{post.title}</h1>
+      {post.subtitle && <p class="post-subtitle">{post.subtitle}</p>}
       <PostMeta
         publishedAt={post.publishedAt}
         readTimeInMinutes={post.readTimeInMinutes}

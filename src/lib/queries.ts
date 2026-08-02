@@ -35,6 +35,7 @@ export const SINGLE_POST = gql`
       post(slug: $slug) {
         id
         title
+        subtitle
         slug
         brief
         publishedAt

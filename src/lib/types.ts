@@ -15,6 +15,7 @@ export interface PostListNode {
 }
 
 export interface PostFull extends PostListNode {
+  subtitle?: string | null;
   author?: { name: string } | null;
   content: { html: string };
   coverImage?: { url: string } | null;
