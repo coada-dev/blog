@@ -382,6 +382,20 @@ body {
   margin: 0 0 16px;
   text-wrap: balance;
 }
+/* Hashnode cover image — sits between the title and the subtitle. Ratios vary
+   (most are 40:21, but some are ~3:2 and narrower) and the API's CoverImage
+   type exposes no width/height, so height is left intrinsic rather than
+   pinned to a ratio that would crop the odd ones. */
+.post-cover {
+  width: 100%;
+  height: auto;
+  margin: 0 auto 20px;
+  border-radius: 4px;
+}
+/* Cancel the subtitle's negative top margin, which exists to tighten it
+   against the h1 when no cover sits between them. */
+.post-cover + .post-subtitle { margin-top: 0; }
+
 .post-subtitle {
   font-family: var(--serif);
   font-size: clamp(1.125rem, 1rem + 0.5vw, 1.3125rem);

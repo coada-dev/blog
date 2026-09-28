@@ -91,6 +91,18 @@ const partLabel = series ? `Part ${currentIndex}` : null;
   <article>
     <header class="post-header">
       <h1>{post.title}</h1>
+      {
+        post.coverImage?.url && (
+          <img
+            class="post-cover"
+            src={post.coverImage.url}
+            alt=""
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          />
+        )
+      }
       {post.subtitle && <p class="post-subtitle">{post.subtitle}</p>}
       <PostMeta
         publishedAt={post.publishedAt}
